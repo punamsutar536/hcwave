@@ -1,0 +1,156 @@
+{{- $fullname := include "hcwave.fullname" . -}}
+{{- $hosts := .Values.ingress.hosts -}}
+{{- if eq .Values.ingress.mode "gateway" }}
+# Gateway API resources programmed into Application Gateway for Containers by
+# the ALB controller. TLS terminates at the gateway (certificate in a Secret).
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+  {{- with .Values.ingress.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  gatewayClassName: {{ .Values.ingress.gateway.className }}
+  {{- with .Values.ingress.gateway.addresses }}
+  addresses:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  listeners:
+    - name: https
+      port: 443
+      protocol: HTTPS
+      allowedRoutes: { namespaces: { from: Same } }
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: {{ .Values.ingress.tlsSecretName }}
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes: { namespaces: { from: Same } }
+---
+# Redirect plain HTTP to HTTPS.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullname }}-https-redirect
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - { name: {{ $fullname }}, sectionName: http }
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect: { scheme: https, statusCode: 301 }
+---
+# Public API: WhatsApp webhooks, report links and the staff API. Internal job
+# endpoints are not on this listener at all (port 8001 is never routed).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullname }}-api
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - { name: {{ $fullname }}, sectionName: https }
+  hostnames:
+    - {{ $hosts.api | quote }}
+    - {{ $hosts.reports | quote }}
+  rules:
+    - matches:
+        {{- range list "/webhooks" "/r" "/staff" "/static" "/healthz" }}
+        - path: { type: PathPrefix, value: {{ . | quote }} }
+        {{- end }}
+      backendRefs:
+        - { name: {{ $fullname }}-api, port: 8000 }
+{{- if .Values.staffUi.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullname }}-staff-ui
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - { name: {{ $fullname }}, sectionName: https }
+  hostnames:
+    - {{ $hosts.staff | quote }}
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /staff }
+      backendRefs:
+        - { name: {{ $fullname }}-api, port: 8000 }
+    - matches:
+        - path: { type: PathPrefix, value: / }
+      backendRefs:
+        - { name: {{ $fullname }}-staff-ui, port: 8080 }
+{{- end }}
+{{- if .Values.ingress.gateway.wafSecurityPolicyId }}
+---
+# Attaches the AGC WAF security policy (created by Bicep) to the gateway.
+apiVersion: alb.networking.azure.io/v1
+kind: WebApplicationFirewallPolicy
+metadata:
+  name: {{ $fullname }}-waf
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: {{ $fullname }}
+    namespace: {{ .Release.Namespace }}
+  webApplicationFirewall:
+    id: {{ .Values.ingress.gateway.wafSecurityPolicyId | quote }}
+{{- end }}
+{{- else if eq .Values.ingress.mode "ingress" }}
+# Classic Ingress (NGINX, AKS application routing, or any cloud LB).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+  {{- with .Values.ingress.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingress.className }}
+  tls:
+    - hosts: [{{ $hosts.api | quote }}, {{ $hosts.reports | quote }}, {{ $hosts.staff | quote }}]
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  rules:
+    {{- range list $hosts.api $hosts.reports }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          {{- range list "/webhooks" "/r" "/staff" "/static" "/healthz" }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service: { name: {{ $fullname }}-api, port: { number: 8000 } }
+          {{- end }}
+    {{- end }}
+    {{- if .Values.staffUi.enabled }}
+    - host: {{ $hosts.staff | quote }}
+      http:
+        paths:
+          - path: /staff
+            pathType: Prefix
+            backend:
+              service: { name: {{ $fullname }}-api, port: { number: 8000 } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: {{ $fullname }}-staff-ui, port: { number: 8080 } }
+    {{- end }}
+{{- end }}

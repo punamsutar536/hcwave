@@ -1,0 +1,41 @@
+# Automated tests (pytest): same offline providers as dev, quieter logs.
+app:
+  log_format: text
+  log_level: WARNING
+server:
+  docs_enabled: false
+  dev_routes_enabled: true
+database:
+  ssl_mode: disable
+messaging: {provider: console}
+queue: {provider: in_memory}
+llm:
+  profiles:
+    intent: {provider: fake, model: fake-intent}
+    reply: {provider: fake, model: fake-reply}
+    tagger: {provider: fake, model: fake-tagger}
+    embedding: {provider: fake, model: fake-embedding, dimensions: 64}
+knowledge: {provider: keyword, min_score: 0.01}
+language: {provider: heuristic}
+safety: {provider: none}
+storage:
+  provider: local
+  providers:
+    local: {root: "${LOCAL_STORAGE_ROOT:-.data/test-blobs}"}
+email: {provider: console}
+sms: {provider: console}
+dashboard: {provider: builtin}
+his: {provider: csv}
+auth:
+  provider: disabled
+  dev_user:
+    oid: 00000000-0000-0000-0000-000000000001
+    name: Test Admin
+    email: test@example.com
+    roles: [Admin]
+    hospital_ids: [demo-hospital]
+internal_auth:
+  mode: shared_secret
+  shared_secret: test-internal-token
+scheduler: {engine: none}
+telemetry: {exporter: none}

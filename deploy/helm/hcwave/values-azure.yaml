@@ -1,0 +1,56 @@
+# =============================================================================
+# AKS overlay: workload identity, Key Vault CSI secrets, Application Gateway
+# for Containers (Gateway API + WAF), internal load balancer for the job API,
+# KEDA on Service Bus. Endpoint values come from values-<env>.generated.yaml.
+# =============================================================================
+serviceAccount:
+  workloadIdentity:
+    enabled: true
+
+env:
+  APP_ENV: prod
+  AZURE_IDENTITY_MODE: workload_identity
+  DATABASE_AUTH_MODE: azure_ad
+  DATABASE_SSL_MODE: require
+  MESSAGING_PROVIDER: acs_whatsapp
+  QUEUE_PROVIDER: azure_service_bus
+  LLM_INTENT_PROVIDER: azure_openai
+  LLM_REPLY_PROVIDER: azure_openai
+  LLM_TAGGER_PROVIDER: azure_openai
+  LLM_EMBEDDING_PROVIDER: azure_openai
+  KNOWLEDGE_PROVIDER: azure_ai_search
+  LANGUAGE_PROVIDER: azure_translator
+  SAFETY_PROVIDER: azure_content_safety
+  STORAGE_PROVIDER: azure_blob
+  EMAIL_PROVIDER: acs_email
+  SMS_PROVIDER: acs_sms
+  AUTH_PROVIDER: entra_id
+  INTERNAL_AUTH_MODE: entra_id
+  SCHEDULER_ENGINE: logic_apps
+  FEEDBACK_ENGINE: durable_functions
+  TELEMETRY_EXPORTER: azure_monitor
+
+secrets:
+  provider: azureKeyVault
+  azureKeyVault:
+    objects:
+      - { name: APP-SECRET-KEY, env: APP_SECRET_KEY }
+
+api:
+  internalService:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+      service.beta.kubernetes.io/azure-load-balancer-internal-subnet: snet-aks-nodes
+
+worker:
+  keda:
+    enabled: true
+
+ingress:
+  mode: gateway
+  gateway:
+    className: azure-alb-external
+
+networkPolicy:
+  internalApiAllowedCidrs: ["10.20.7.0/24", "10.20.8.0/24"]

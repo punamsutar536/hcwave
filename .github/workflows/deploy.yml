@@ -1,0 +1,102 @@
+# =============================================================================
+# CD: deploy an environment to Azure with OpenID Connect (no stored secrets).
+# Configure a GitHub environment per stage with variables AZURE_CLIENT_ID,
+# AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, HCWAVE_ADMIN_GROUP_ID and the
+# federated credential on the deployment app registration.
+# =============================================================================
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, staging, prod]
+        required: true
+      infrastructure:
+        description: Run the Bicep deployment
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      ENV: ${{ inputs.environment }}
+      HCWAVE_ADMIN_GROUP_ID: ${{ vars.HCWAVE_ADMIN_GROUP_ID }}
+      HCWAVE_ADMIN_GROUP_NAME: ${{ vars.HCWAVE_ADMIN_GROUP_NAME }}
+      HCWAVE_ALERT_EMAIL: ${{ vars.HCWAVE_ALERT_EMAIL }}
+      HCWAVE_DOMAIN: ${{ vars.HCWAVE_DOMAIN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - uses: azure/setup-helm@v4
+      - uses: azure/use-kubelogin@v1
+        with: { kubelogin-version: v0.1.4 }
+
+      - name: Infrastructure (Bicep what-if + deploy)
+        if: ${{ inputs.infrastructure }}
+        run: |
+          scripts/deploy-infra.sh "$ENV" --what-if
+          scripts/deploy-infra.sh "$ENV"
+
+      - name: Load environment outputs
+        if: ${{ !inputs.infrastructure }}
+        run: |
+          # Re-create deploy/generated/<env>.env from the last deployment outputs.
+          mkdir -p deploy/generated
+          az deployment sub show --name "hcwave-$ENV" --query properties.outputs -o json > /tmp/outputs.json
+          python3 - <<'PY'
+          import json, os
+          outputs = json.load(open("/tmp/outputs.json"))
+          names = {
+              "RESOURCE_GROUP": "resourceGroupName", "AKS_NAME": "aksName", "ACR_NAME": "acrName",
+              "ACR_LOGIN_SERVER": "acrLoginServer", "KEY_VAULT_NAME": "keyVaultName", "TENANT_ID": "tenantId",
+              "WORKLOAD_CLIENT_ID": "workloadIdentityClientId", "WORKLOAD_IDENTITY_NAME": "workloadIdentityName",
+              "LOGICAPP_CLIENT_ID": "logicAppClientId", "FUNCTIONS_CLIENT_ID": "functionsClientId",
+              "AGC_ID": "agcId", "AGC_FRONTEND": "agcFrontendName", "AGC_FRONTEND_FQDN": "agcFrontendFqdn",
+              "AGC_SECURITY_POLICY_ID": "agcSecurityPolicyId", "FRONT_DOOR_HOST": "frontDoorHostName",
+              "POSTGRES_HOST": "postgresHost", "POSTGRES_DB": "postgresDatabase",
+              "SERVICEBUS_NAMESPACE": "serviceBusNamespace", "STORAGE_ACCOUNT_URL": "storageAccountUrl",
+              "ACS_ENDPOINT": "acsEndpoint", "EMAIL_SENDER": "acsEmailSender",
+              "AZURE_OPENAI_ENDPOINT": "openAiEndpoint", "AZURE_SEARCH_ENDPOINT": "searchEndpoint",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "contentSafetyEndpoint", "AZURE_TRANSLATOR_ENDPOINT": "translatorEndpoint",
+              "APPLICATIONINSIGHTS_CONNECTION_STRING": "appInsightsConnectionString", "INTERNAL_API_IP": "internalApiIp",
+              "DURABLE_FEEDBACK_START_URL": "durableFeedbackStartUrl", "LOGIC_APP_NAME": "logicAppName",
+              "FUNCTION_APP_NAME": "functionAppName",
+          }
+          with open(f"deploy/generated/{os.environ['ENV']}.env", "w") as f:
+              for env_name, key in names.items():
+                  f.write(f"{env_name}={outputs.get(key, {}).get('value', '')}\n")
+          PY
+          # Entra app IDs are stored as environment variables of the GitHub environment.
+          cat >> "deploy/generated/$ENV.env" <<EOF2
+          STAFF_API_AUDIENCE=${{ vars.STAFF_API_AUDIENCE }}
+          STAFF_API_SCOPE=${{ vars.STAFF_API_SCOPE }}
+          ENTRA_SPA_CLIENT_ID=${{ vars.ENTRA_SPA_CLIENT_ID }}
+          INTERNAL_API_AUDIENCE=${{ vars.INTERNAL_API_AUDIENCE }}
+          FUNCTIONS_AUDIENCE=${{ vars.FUNCTIONS_AUDIENCE }}
+          DEMO_HOSPITAL_CHANNEL_IDS=${{ vars.DEMO_HOSPITAL_CHANNEL_IDS }}
+          EOF2
+
+      - name: Kubernetes credentials
+        run: |
+          set -a; source "deploy/generated/$ENV.env"; set +a
+          az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_NAME" --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+
+      - name: Build images and deploy chart
+        run: scripts/deploy-app.sh "$ENV" "${GITHUB_SHA::8}"
+
+      - name: Deploy Logic Apps and Durable Functions
+        run: scripts/deploy-workflows.sh "$ENV"

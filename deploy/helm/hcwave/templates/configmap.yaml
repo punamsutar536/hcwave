@@ -1,0 +1,22 @@
+# Deployment overlay merged by the app over config/app.yaml (no rebuild needed
+# to change configuration). Contains no secrets.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hcwave.fullname" . }}-config
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+data:
+  10-app.yaml: |
+    {{- if .Values.appConfig }}
+    {{- toYaml .Values.appConfig | nindent 4 }}
+    {{- else }}
+    {}
+    {{- end }}
+  20-hospitals.yaml: |
+    {{- if .Values.hospitals }}
+    hospitals:
+      {{- toYaml .Values.hospitals | nindent 6 }}
+    {{- else }}
+    {}
+    {{- end }}

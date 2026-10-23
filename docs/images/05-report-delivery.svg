@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="698" viewBox="0 0 1640 698" font-family="Inter, 'DejaVu Sans', Arial, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f2933"/></marker></defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="24" y="34" font-size="20" font-weight="700" fill="#1f2933">Secure report delivery – no PDFs in chat</text>
+<text x="24" y="56" font-size="13" fill="#52606d">Verified, expiring link (48 h default) → OTP or date of birth → 5-minute user-delegation SAS. Every step written to the access audit log.</text>
+<rect x="38" y="72" width="181.5" height="46" rx="9" fill="#f2f4f7" stroke="#7b8794" stroke-width="1.5"/>
+<text x="128.75" y="92" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">LIS / HIS</text>
+<line x1="128.75" y1="118" x2="128.75" y2="678" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="235.5" y="72" width="181.5" height="46" rx="9" fill="#fff3e0" stroke="#c26a00" stroke-width="1.5"/>
+<text x="326.25" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Data Factory /</text>
+<text x="326.25" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Blob (imports)</text>
+<line x1="326.25" y1="118" x2="326.25" y2="678" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="433" y="72" width="181.5" height="46" rx="9" fill="#e9f7f8" stroke="#0f7c86" stroke-width="1.5"/>
+<text x="523.75" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Worker / jobs</text>
+<text x="523.75" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">(HIS sync)</text>
+<line x1="523.75" y1="118" x2="523.75" y2="678" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="630.5" y="72" width="181.5" height="46" rx="9" fill="#e7f6ec" stroke="#1f8a4c" stroke-width="1.5"/>
+<text x="721.25" y="92" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">PostgreSQL</text>
+<line x1="721.25" y1="118" x2="721.25" y2="678" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="828" y="72" width="181.5" height="46" rx="9" fill="#e6f1fb" stroke="#0b6bcb" stroke-width="1.5"/>
+<text x="918.75" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">ACS WhatsApp</text>
+<text x="918.75" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">(+ SMS fallback)</text>
+<line x1="918.75" y1="118" x2="918.75" y2="678" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="1025.5" y="72" width="181.5" height="46" rx="9" fill="#f2f4f7" stroke="#7b8794" stroke-width="1.5"/>
+<text x="1116.25" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Patient /</text>
+<text x="1116.25" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">family phone</text>
+<line x1="1116.25" y1="118" x2="1116.25" y2="678" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="1223" y="72" width="181.5" height="46" rx="9" fill="#e9f7f8" stroke="#0f7c86" stroke-width="1.5"/>
+<text x="1313.75" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Report portal</text>
+<text x="1313.75" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">(API :8000)</text>
+<line x1="1313.75" y1="118" x2="1313.75" y2="678" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="1420.5" y="72" width="181.5" height="46" rx="9" fill="#e7f6ec" stroke="#1f8a4c" stroke-width="1.5"/>
+<text x="1511.25" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Blob (reports)</text>
+<text x="1511.25" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">private</text>
+<line x1="1511.25" y1="118" x2="1511.25" y2="678" stroke="#7b8794" stroke-dasharray="4 4"/>
+<line x1="128.75" y1="150" x2="326.25" y2="150" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="81.69999999999999" y="130" width="291.6" height="16" fill="#ffffff"/>
+<text x="227.5" y="143" text-anchor="middle" font-size="12" fill="#1f2933">1. report marked final (export / API / FHIR)</text>
+<line x1="326.25" y1="194" x2="523.75" y2="194" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="276" y="174" width="298" height="16" fill="#ffffff"/>
+<text x="425" y="187" text-anchor="middle" font-size="12" fill="#1f2933">2. BlobCreated event or 5-min schedule → sync</text>
+<line x1="523.75" y1="238" x2="1511.25" y2="238" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="884.5" y="218" width="266" height="16" fill="#ffffff"/>
+<text x="1017.5" y="231" text-anchor="middle" font-size="12" fill="#1f2933">3. copy PDF to private reports container</text>
+<line x1="523.75" y1="282" x2="721.25" y2="282" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="447.9" y="262" width="349.20000000000005" height="16" fill="#ffffff"/>
+<text x="622.5" y="275" text-anchor="middle" font-size="12" fill="#1f2933">4. upsert patient, create report, token hash + expiry</text>
+<line x1="523.75" y1="326" x2="918.75" y2="326" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="553.05" y="306" width="336.40000000000003" height="16" fill="#ffffff"/>
+<text x="721.25" y="319" text-anchor="middle" font-size="12" fill="#1f2933">5. report_ready template to registered numbers only</text>
+<line x1="918.75" y1="370" x2="1116.25" y2="370" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="887.7" y="350" width="259.6" height="16" fill="#ffffff"/>
+<text x="1017.5" y="363" text-anchor="middle" font-size="12" fill="#1f2933">6. "Your report is ready" + secure link</text>
+<line x1="1116.25" y1="414" x2="1313.75" y2="414" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="1094.8" y="394" width="240.4" height="16" fill="#ffffff"/>
+<text x="1215" y="407" text-anchor="middle" font-size="12" fill="#1f2933">7. open link (/r/&lt;hospital&gt;/&lt;token&gt;)</text>
+<line x1="1313.75" y1="458" x2="918.75" y2="458" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="925.65" y="438" width="381.20000000000005" height="16" fill="#ffffff"/>
+<text x="1116.25" y="451" text-anchor="middle" font-size="12" fill="#1f2933">8. OTP via WhatsApp authentication template (SMS fallback)</text>
+<line x1="1116.25" y1="502" x2="1313.75" y2="502" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="1030.8" y="482" width="368.40000000000003" height="16" fill="#ffffff"/>
+<text x="1215" y="495" text-anchor="middle" font-size="12" fill="#1f2933">9. enter OTP or date of birth (lockout after 5 failures)</text>
+<line x1="1313.75" y1="546" x2="721.25" y2="546" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="839.7" y="526" width="355.6" height="16" fill="#ffffff"/>
+<text x="1017.5" y="539" text-anchor="middle" font-size="12" fill="#1f2933">10. audit: link_opened, verify_ok / failed, downloaded</text>
+<line x1="1313.75" y1="590" x2="1511.25" y2="590" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="1257.1" y="570" width="310.8" height="16" fill="#ffffff"/>
+<text x="1412.5" y="583" text-anchor="middle" font-size="12" fill="#1f2933">11. mint 5-minute read-only user-delegation SAS</text>
+<line x1="1313.75" y1="634" x2="1116.25" y2="634" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="1059.6" y="614" width="310.8" height="16" fill="#ffffff"/>
+<text x="1215" y="627" text-anchor="middle" font-size="12" fill="#1f2933">12. redirect → PDF opens (no AI interpretation)</text>
+</svg>

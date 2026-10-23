@@ -1,0 +1,39 @@
+# Secrets – never commit real values (use .env.example as the template).
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+local.settings.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local data
+.data/
+
+# Node / staff UI
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Infrastructure build outputs
+infra/bicep/**/*.json
+!infra/bicep/**/parameters*.json
+!infra/bicep/**/*.parameters.json
+.terraform/
+*.tgz
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

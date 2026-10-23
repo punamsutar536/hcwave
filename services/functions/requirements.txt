@@ -1,0 +1,5 @@
+# Azure Functions Python v2 programming model + Durable Functions.
+azure-functions>=1.21
+azure-functions-durable>=1.2.10
+azure-identity>=1.17
+httpx>=0.27

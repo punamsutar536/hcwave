@@ -1,0 +1,50 @@
+# Local development: everything runs offline on a laptop (docker compose).
+# No cloud account needed – console messaging, offline LLM, local storage.
+app:
+  log_format: text
+server:
+  docs_enabled: true
+  # /dev/simulate – never enable on an internet-facing environment.
+  dev_routes_enabled: ${DEV_ROUTES_ENABLED:-true}
+database:
+  ssl_mode: ${DATABASE_SSL_MODE:-disable}
+messaging:
+  provider: ${MESSAGING_PROVIDER:-console}
+queue:
+  provider: ${QUEUE_PROVIDER:-in_memory}
+llm:
+  profiles:
+    intent: {provider: "${LLM_INTENT_PROVIDER:-fake}", model: "${LLM_INTENT_MODEL:-gpt-5-mini}"}
+    reply: {provider: "${LLM_REPLY_PROVIDER:-fake}", model: "${LLM_REPLY_MODEL:-gpt-5}"}
+    tagger: {provider: "${LLM_TAGGER_PROVIDER:-fake}", model: "${LLM_TAGGER_MODEL:-gpt-5-mini}"}
+    embedding: {provider: "${LLM_EMBEDDING_PROVIDER:-fake}", model: "${LLM_EMBEDDING_MODEL:-text-embedding-3-large}", dimensions: 1536}
+knowledge:
+  provider: ${KNOWLEDGE_PROVIDER:-keyword}
+  min_score: 0.05
+language:
+  provider: ${LANGUAGE_PROVIDER:-heuristic}
+safety:
+  provider: ${SAFETY_PROVIDER:-none}
+storage:
+  provider: ${STORAGE_PROVIDER:-local}
+email:
+  provider: ${EMAIL_PROVIDER:-console}
+sms:
+  provider: ${SMS_PROVIDER:-console}
+his:
+  provider: ${HIS_PROVIDER:-csv}
+auth:
+  provider: ${AUTH_PROVIDER:-disabled}
+  dev_user:
+    oid: 00000000-0000-0000-0000-000000000001
+    name: Dev Admin
+    email: dev@example.com
+    roles: [Admin]
+    hospital_ids: [demo-hospital]
+internal_auth:
+  mode: ${INTERNAL_AUTH_MODE:-shared_secret}
+  shared_secret: ${INTERNAL_API_TOKEN:-dev-internal-token}
+scheduler:
+  engine: none
+telemetry:
+  exporter: ${TELEMETRY_EXPORTER:-none}

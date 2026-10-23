@@ -1,0 +1,1 @@
+"""Management dashboard embedding providers."""

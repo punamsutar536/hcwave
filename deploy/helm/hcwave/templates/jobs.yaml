@@ -1,0 +1,100 @@
+{{- define "hcwave.jobPod" -}}
+serviceAccountName: {{ include "hcwave.serviceAccountName" .root }}
+restartPolicy: Never
+securityContext:
+  {{- toYaml .root.Values.podSecurityContext | nindent 2 }}
+{{- include "hcwave.scheduling" .root | nindent 0 }}
+containers:
+  - name: job
+    image: {{ include "hcwave.image" (dict "root" .root "image" .root.Values.image.backend) }}
+    imagePullPolicy: {{ .root.Values.image.backend.pullPolicy }}
+    command: {{ toJson .command }}
+    env:
+      {{- include "hcwave.backendEnv" .root | nindent 6 }}
+    envFrom:
+      {{- include "hcwave.backendEnvFrom" .root | nindent 6 }}
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "1", memory: 512Mi }
+    securityContext:
+      {{- toYaml .root.Values.containerSecurityContext | nindent 6 }}
+    volumeMounts:
+      {{- include "hcwave.backendVolumeMounts" .root | nindent 6 }}
+volumes:
+  {{- include "hcwave.backendVolumes" .root | nindent 2 }}
+{{- end -}}
+{{- if .Values.migrations.enabled }}
+# Database migrations: after first install (secrets/config exist by then) and
+# before every upgrade (so new code never runs against an old schema).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "hcwave.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        {{- include "hcwave.podLabels" (dict "root" . "component" "migrate") | nindent 8 }}
+    spec:
+      {{- include "hcwave.jobPod" (dict "root" . "command" (list "alembic" "-c" "/app/alembic.ini" "upgrade" "head")) | nindent 6 }}
+{{- end }}
+{{- if .Values.knowledgeIndex.enabled }}
+---
+# Re-indexes hospital FAQ content into the knowledge store.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "hcwave.fullname" . }}-knowledge-{{ .Release.Revision }}
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        {{- include "hcwave.podLabels" (dict "root" . "component" "knowledge") | nindent 8 }}
+    spec:
+      {{- include "hcwave.jobPod" (dict "root" . "command" (list "hcwave-knowledge")) | nindent 6 }}
+{{- end }}
+{{- if .Values.cronJobs.enabled }}
+{{- range .Values.cronJobs.jobs }}
+---
+# Portable scheduler: same job code that Logic Apps triggers on Azure.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "hcwave.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "hcwave.labels" $ | nindent 4 }}
+spec:
+  schedule: {{ .schedule | quote }}
+  timeZone: {{ $.Values.cronJobs.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels:
+            {{- include "hcwave.podLabels" (dict "root" $ "component" "cronjob") | nindent 12 }}
+        spec:
+          {{- include "hcwave.jobPod" (dict "root" $ "command" (prepend .args "hcwave-jobs")) | nindent 10 }}
+{{- end }}
+{{- end }}

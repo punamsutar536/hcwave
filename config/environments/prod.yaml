@@ -1,0 +1,15 @@
+# Production on Azure (AKS, Central India). Keyless everywhere: workload
+# identity for Postgres, ACS, Service Bus, Storage, AI Search, OpenAI.
+app:
+  log_level: INFO
+server:
+  docs_enabled: false
+  dev_routes_enabled: false
+database:
+  auth_mode: azure_ad
+  ssl_mode: require
+  pool_size: 20
+identity:
+  mode: workload_identity
+telemetry:
+  capture_llm_content: false

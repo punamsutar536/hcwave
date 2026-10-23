@@ -1,0 +1,88 @@
+# =============================================================================
+# Pre-approved WhatsApp templates (provider-neutral).
+#
+# Anything the platform starts itself (reminders, report alerts, feedback
+# requests, OTPs, staff alerts) must be a template approved in WhatsApp
+# Manager in the "utility" (or "authentication") category. Submit these in
+# week 1 – approval sometimes needs rewording.
+#
+#   name:        template name registered with WhatsApp (via ACS / Meta)
+#   languages:   platform language -> WhatsApp language code
+#   body_params: ordered values for {{1}}, {{2}}, ...
+#   buttons:     in template order; quick_reply value = payload pattern,
+#                url value = parameter that fills the dynamic URL suffix
+# Suggested body text for submission is in docs/ (as-built document).
+# =============================================================================
+templates:
+  appointment_confirmation:
+    name: hcw_appointment_confirmation
+    category: utility
+    languages: {en: en, ml: ml, hi: hi}
+    body_params: [patient_name, doctor_name, date_time, hospital_name]
+
+  appointment_reminder_24h:
+    name: hcw_appointment_reminder
+    category: utility
+    languages: {en: en, ml: ml, hi: hi}
+    body_params: [patient_name, doctor_name, date_time, hospital_name]
+    buttons:
+      - {sub_type: quick_reply, value: "remind_confirm:{appointment_id}"}
+      - {sub_type: quick_reply, value: "remind_resched:{appointment_id}"}
+      - {sub_type: quick_reply, value: "remind_cancel:{appointment_id}"}
+
+  appointment_prep:
+    name: hcw_appointment_prep
+    category: utility
+    languages: {en: en, ml: ml, hi: hi}
+    body_params: [patient_name, doctor_name, time]
+
+  missed_appointment:
+    name: hcw_missed_appointment
+    category: utility
+    languages: {en: en, ml: ml, hi: hi}
+    body_params: [patient_name, doctor_name]
+    buttons:
+      - {sub_type: quick_reply, value: "remind_resched:{appointment_id}"}
+
+  follow_up_due:
+    name: hcw_follow_up_due
+    category: utility
+    languages: {en: en, ml: ml, hi: hi}
+    body_params: [patient_name, doctor_name, follow_up_date]
+    buttons:
+      - {sub_type: quick_reply, value: "followup_book:{doctor_id}"}
+
+  report_ready:
+    name: hcw_report_ready
+    category: utility
+    languages: {en: en, ml: ml, hi: hi}
+    body_params: [patient_name, report_title, expiry_hours]
+    buttons:
+      # Template URL: https://reports.<domain>/r/{{1}}
+      - {sub_type: url, value: "link_suffix"}
+
+  otp_code:
+    name: hcw_otp_code
+    category: authentication
+    languages: {en: en, ml: ml, hi: hi}
+    body_params: [code]
+    buttons:
+      - {sub_type: url, value: "code"}        # copy-code button
+
+  feedback_request:
+    name: hcw_feedback_request
+    category: utility
+    languages: {en: en, ml: ml, hi: hi}
+    body_params: [patient_name, hospital_name]
+
+  staff_ticket_alert:
+    name: hcw_staff_ticket_alert
+    category: utility
+    languages: {en: en}
+    body_params: [hospital_name, category, score, summary]
+
+  daily_briefing:
+    name: hcw_daily_briefing
+    category: utility
+    languages: {en: en}
+    body_params: [hospital_name, date, bookings, no_show, reports, nps, bot_share]

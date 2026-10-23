@@ -1,0 +1,8 @@
+# Staging on Azure (AKS). Same providers as prod at smaller scale. API docs can be
+# switched on with DOCS_ENABLED=true while testing.
+server:
+  docs_enabled: ${DOCS_ENABLED:-false}
+database:
+  auth_mode: azure_ad
+identity:
+  mode: workload_identity

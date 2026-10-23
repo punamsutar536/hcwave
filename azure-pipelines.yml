@@ -1,0 +1,78 @@
+# =============================================================================
+# Azure DevOps alternative to GitHub Actions (Repos + Pipelines + Boards).
+# Service connection "hcwave-<env>" uses workload identity federation.
+# =============================================================================
+trigger:
+  branches: { include: [main] }
+
+parameters:
+  - name: environment
+    type: string
+    default: dev
+    values: [dev, staging, prod]
+  - name: infrastructure
+    type: boolean
+    default: false
+
+variables:
+  - group: hcwave-${{ parameters.environment }}   # HCWAVE_ADMIN_GROUP_ID, Entra app IDs, domain
+
+stages:
+  - stage: validate
+    jobs:
+      - job: backend
+        pool: { vmImage: ubuntu-latest }
+        services:
+          postgres: postgres
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: "3.12" }
+          - script: |
+              cd services/backend
+              pip install -e ".[azure,portable,dev]"
+              ruff check src tests migrations
+              TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/hcwave_test pytest -q
+            displayName: Lint and test backend
+      - job: infrastructure
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - script: |
+              az bicep install
+              az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+            displayName: Bicep build
+
+  - stage: deploy
+    dependsOn: validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: deploy
+        environment: hcwave-${{ parameters.environment }}
+        pool: { vmImage: ubuntu-latest }
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Deploy infrastructure, images, chart and workflows
+                  inputs:
+                    azureSubscription: hcwave-${{ parameters.environment }}
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      ENV=${{ parameters.environment }}
+                      if [ "${{ parameters.infrastructure }}" = "True" ]; then scripts/deploy-infra.sh "$ENV"; fi
+                      az aks install-cli
+                      set -a; source "deploy/generated/$ENV.env"; set +a
+                      az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_NAME" --overwrite-existing
+                      kubelogin convert-kubeconfig -l azurecli
+                      scripts/deploy-app.sh "$ENV" "$(Build.SourceVersion)"
+                      scripts/deploy-workflows.sh "$ENV"
+
+resources:
+  containers:
+    - container: postgres
+      image: pgvector/pgvector:pg16
+      env: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+      ports: ["5432:5432"]

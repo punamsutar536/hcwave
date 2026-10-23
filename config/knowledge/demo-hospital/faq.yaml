@@ -1,0 +1,54 @@
+# Hospital-approved FAQ content. The assistant answers ONLY from this content
+# (plus doctor schedules from the HIS). Native speakers review translations.
+documents:
+  - id: timings
+    title: OPD timings and visiting hours
+    content: >-
+      Outpatient (OPD) consultations run Monday to Saturday, 8:00 AM to 8:00 PM,
+      and Sunday 9:00 AM to 1:00 PM. Casualty and pharmacy are open 24x7.
+      Visiting hours for in-patients are 4:00 PM to 7:00 PM daily.
+  - id: location
+    title: Location, directions and parking
+    content: >-
+      We are on MG Road, Kochi, Kerala 682016, 300 m from MG Road metro station.
+      The main entrance is Gate 1; the casualty entrance is Gate 2. Paid parking
+      is available in the basement (first 30 minutes free for drop-off).
+      Directions: https://maps.google.com/?q=Demo+Multi-Speciality+Hospital+Kochi
+  - id: packages
+    title: Health check-up packages and prices
+    content: >-
+      Basic Health Check: Rs 1,499 (blood sugar, lipid profile, kidney and liver
+      function, ECG, physician consultation). Executive Health Check: Rs 3,999
+      (Basic plus thyroid, chest X-ray, ultrasound abdomen, cardiology and
+      dietitian consultation). Women's Wellness: Rs 2,999. Senior Citizen
+      Package: Rs 3,499. Packages need 10-12 hours fasting and booking one day
+      in advance. Reports are shared within 24 hours.
+  - id: insurance
+    title: Insurance and cashless treatment
+    content: >-
+      We offer cashless treatment with most major insurers and TPAs, including
+      Star Health, HDFC ERGO, ICICI Lombard, Niva Bupa, Care Health, Medi Assist
+      and MD India, and with CGHS/ECHS where empanelled. Bring your insurance
+      card, photo ID and policy details to the insurance desk near Gate 1
+      (8 AM - 8 PM). Pre-authorisation for planned admissions takes 4-24 hours.
+  - id: departments
+    title: Departments and services
+    content: >-
+      Departments: General Medicine, Cardiology, Orthopaedics, Paediatrics,
+      Obstetrics and Gynaecology, ENT, Dermatology, Neurology, Nephrology with
+      dialysis, General Surgery, Radiology (X-ray, CT, MRI, ultrasound) and a
+      24x7 laboratory. Services include health check-ups, physiotherapy,
+      pharmacy, ambulance and home sample collection.
+  - id: reports
+    title: Getting lab and radiology reports
+    content: >-
+      When your report is ready we send a WhatsApp message with a secure link
+      that expires in 48 hours. Open it and verify with the OTP sent to your
+      registered number or your date of birth. Printed copies are available at
+      the report counter near the laboratory.
+  - id: bring
+    title: What to bring to your appointment
+    content: >-
+      Please bring previous prescriptions and reports, a photo ID, your
+      insurance card if applicable, and the list of medicines you take. Arrive
+      15 minutes before your appointment time for registration.

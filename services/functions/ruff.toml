@@ -1,0 +1,10 @@
+# Same lint rules as the backend (Google docstring convention).
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "N", "D", "B", "SIM", "UP"]
+ignore = ["E501"]
+
+[lint.pydocstyle]
+convention = "google"

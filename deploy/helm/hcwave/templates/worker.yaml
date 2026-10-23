@@ -1,0 +1,52 @@
+# Queue worker: WhatsApp inbound events, delivery receipts, report events.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hcwave.fullname" . }}-worker
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  {{- if not .Values.worker.keda.enabled }}
+  replicas: {{ .Values.worker.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "hcwave.selectorLabels" (dict "root" . "component" "worker") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hcwave.podLabels" (dict "root" . "component" "worker") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "hcwave.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- include "hcwave.topologySpread" (dict "root" . "component" "worker") | nindent 6 }}
+      {{- include "hcwave.scheduling" . | nindent 6 }}
+      containers:
+        - name: worker
+          image: {{ include "hcwave.image" (dict "root" . "image" .Values.image.backend) }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          command: ["hcwave-worker"]
+          ports:
+            - { name: health, containerPort: 8080 }
+          env:
+            {{- include "hcwave.backendEnv" . | nindent 12 }}
+          envFrom:
+            {{- include "hcwave.backendEnvFrom" . | nindent 12 }}
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            {{- include "hcwave.backendVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "hcwave.backendVolumes" . | nindent 8 }}

@@ -1,0 +1,177 @@
+# =============================================================================
+# hcwave Helm chart – portable defaults. Cloud-specific settings live in
+# values-azure.yaml (AKS) and values-local.yaml (kind/minikube); the bootstrap
+# script writes values-<env>.generated.yaml with endpoints from Bicep outputs.
+# =============================================================================
+
+global:
+  # Registry host prefixed to image repositories, e.g. hcwprodacr1a2b3c.azurecr.io
+  imageRegistry: ""
+  imagePullSecrets: []
+
+image:
+  backend:
+    repository: hcwave/backend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  staffUi:
+    repository: hcwave/staff-ui
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: hcwave
+  annotations: {}
+  # Microsoft Entra Workload ID (AKS). Other clouds: IRSA / GKE WI annotations.
+  workloadIdentity:
+    enabled: false
+    clientId: ""
+
+# Non-secret environment variables shared by API, worker and jobs.
+env:
+  APP_ENV: prod
+  LOG_LEVEL: INFO
+
+# YAML overlay merged over config/app.yaml + environments/<APP_ENV>.yaml.
+# Anything in the app config can be overridden here without rebuilding.
+appConfig: {}
+
+# Tenant (hospital) overrides/additions, keyed by hospital ID, merged over
+# config/hospitals/*.yaml. Example:
+#   demo-hospital:
+#     channel_ids: ["<acs-channel-registration-id>"]
+hospitals: {}
+
+# -----------------------------------------------------------------------------
+# Secrets: never in values files committed to git.
+#   kubernetes     – Secret created from secrets.kubernetes.values (local only)
+#   azureKeyVault  – Secrets Store CSI driver + workload identity (AKS)
+#   existing       – a Secret created by another tool (External Secrets, Vault…)
+# -----------------------------------------------------------------------------
+secrets:
+  provider: kubernetes
+  secretName: hcwave-secrets
+  kubernetes:
+    values: {}
+  azureKeyVault:
+    keyvaultName: ""
+    tenantId: ""
+    # Key Vault secret name -> environment variable name.
+    objects:
+      - { name: APP-SECRET-KEY, env: APP_SECRET_KEY }
+
+api:
+  replicas: 2
+  resources:
+    requests: { cpu: 250m, memory: 384Mi }
+    limits: { cpu: "1", memory: 768Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  # Private listener for Logic Apps / Functions / CronJobs (port 8001).
+  internalService:
+    type: ClusterIP
+    annotations: {}
+    loadBalancerIP: ""
+  podDisruptionBudget:
+    minAvailable: 1
+
+worker:
+  replicas: 2
+  resources:
+    requests: { cpu: 250m, memory: 384Mi }
+    limits: { cpu: "1", memory: 768Mi }
+  # KEDA scales workers on Service Bus queue length (AKS KEDA add-on).
+  keda:
+    enabled: false
+    serviceBusNamespace: ""   # <name>.servicebus.windows.net
+    queueName: inbound-messages
+    messageCount: "20"
+    minReplicas: 1
+    maxReplicas: 10
+  podDisruptionBudget:
+    minAvailable: 1
+
+staffUi:
+  enabled: true
+  replicas: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+  env:
+    AUTH_MODE: msal
+    ENTRA_CLIENT_ID: ""
+    ENTRA_TENANT_ID: ""
+    STAFF_API_SCOPE: ""
+    API_BASE_URL: ""
+    CSP_CONNECT_SRC: ""
+    CSP_FRAME_SRC: ""
+
+# Alembic migrations (post-install / pre-upgrade hook).
+migrations:
+  enabled: true
+
+# Re-index hospital FAQ content after each install/upgrade.
+knowledgeIndex:
+  enabled: true
+
+# Kubernetes CronJobs – the portable scheduler (scheduler.engine: k8s_cronjob).
+# On Azure the same jobs are triggered by Logic Apps instead.
+cronJobs:
+  enabled: false
+  timeZone: Asia/Kolkata
+  jobs:
+    - { name: reminders, schedule: "*/15 * * * *", args: ["reminders"] }
+    - { name: feedback, schedule: "*/15 * * * *", args: ["feedback"] }
+    - { name: tickets-escalate, schedule: "*/30 * * * *", args: ["tickets-escalate"] }
+    - { name: his-reports, schedule: "*/5 * * * *", args: ["his-reports"] }
+    - { name: his-visits, schedule: "*/15 * * * *", args: ["his-visits"] }
+    - { name: his-doctors, schedule: "30 5 * * *", args: ["his-doctors"] }
+    - { name: briefing, schedule: "0 8 * * *", args: ["briefing"] }
+    - { name: maintenance, schedule: "0 * * * *", args: ["maintenance"] }
+
+# -----------------------------------------------------------------------------
+# North-south traffic
+#   gateway – Gateway API (Application Gateway for Containers on AKS)
+#   ingress – classic Ingress (NGINX / AKS app routing / any cloud LB)
+# -----------------------------------------------------------------------------
+ingress:
+  mode: ingress
+  hosts:
+    api: api.example.com
+    reports: reports.example.com
+    staff: staff.example.com
+  tlsSecretName: hcwave-tls
+  gateway:
+    className: azure-alb-external
+    annotations: {}
+    addresses: []
+    wafSecurityPolicyId: ""
+  ingress:
+    className: nginx
+    annotations: {}
+
+networkPolicy:
+  enabled: true
+  # Sources allowed to reach the internal job API (Logic Apps/Functions subnets).
+  internalApiAllowedCidrs: []
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile: { type: RuntimeDefault }
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: { drop: ["ALL"] }
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadAcrossZones: true

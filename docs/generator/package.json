@@ -1,0 +1,14 @@
+{
+  "name": "hcwave-docs-generator",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Generates the as-built Word document and architecture diagrams (diagrams as code).",
+  "scripts": {
+    "build": "node build.cjs",
+    "diagrams": "node render.cjs"
+  },
+  "dependencies": {
+    "docx": "9.7.1",
+    "playwright": "1.56.1"
+  }
+}

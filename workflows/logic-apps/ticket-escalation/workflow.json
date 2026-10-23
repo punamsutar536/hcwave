@@ -1,0 +1,81 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "description": "Escalates complaints unresolved past their SLA to the unit head.",
+    "triggers": {
+      "Recurrence": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 30,
+          "timeZone": "India Standard Time"
+        }
+      }
+    },
+    "actions": {
+      "Run_job": {
+        "type": "Http",
+        "runAfter": {},
+        "inputs": {
+          "method": "POST",
+          "uri": "@{appsetting('HCWAVE_INTERNAL_URL')}/internal/jobs/tickets-escalate",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {},
+          "authentication": {
+            "type": "ManagedServiceIdentity",
+            "identity": "@{appsetting('HCWAVE_LOGICAPP_IDENTITY_ID')}",
+            "audience": "@{appsetting('HCWAVE_INTERNAL_AUDIENCE')}"
+          },
+          "retryPolicy": {
+            "type": "exponential",
+            "count": 4,
+            "interval": "PT30S",
+            "minimumInterval": "PT10S",
+            "maximumInterval": "PT10M"
+          }
+        },
+        "limit": {
+          "timeout": "PT10M"
+        }
+      },
+      "Check_for_tenant_errors": {
+        "type": "If",
+        "runAfter": {
+          "Run_job": [
+            "Succeeded"
+          ]
+        },
+        "expression": {
+          "and": [
+            {
+              "contains": [
+                "@{string(body('Run_job')?['results'])}",
+                "\"error\""
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Fail_run": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "TenantJobFailed",
+                "message": "@{string(body('Run_job')?['results'])}"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

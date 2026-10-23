@@ -1,0 +1,75 @@
+# =============================================================================
+# Laptop stack – runs the whole platform offline (no cloud account needed):
+#   cp .env.example .env && docker compose up --build
+#   open http://localhost:8000/docs (API) and http://localhost:5173 (staff UI)
+#   curl -XPOST localhost:8000/dev/simulate -H 'content-type: application/json' -d '{"text":"hi"}'
+# Uses console WhatsApp, offline LLM, Redis queue, local storage. Switch any
+# provider to its Azure implementation by editing .env.
+# =============================================================================
+name: hcwave
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: services/backend/Dockerfile
+  image: hcwave/backend:local
+  env_file: .env
+  environment:
+    APP_ENV: ${APP_ENV:-dev}
+    DATABASE_URL: postgresql+asyncpg://hcwave:hcwave@postgres:5432/hcwave
+    DATABASE_SSL_MODE: disable
+    QUEUE_PROVIDER: redis   # separate api + worker containers share Redis
+    REDIS_URL: redis://redis:6379/0
+    LOCAL_STORAGE_ROOT: /data/blobs
+  volumes:
+    - blobs:/data/blobs
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_started }
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment: { POSTGRES_USER: hcwave, POSTGRES_PASSWORD: hcwave, POSTGRES_DB: hcwave }
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hcwave"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  migrate:
+    <<: *backend
+    command: ["sh", "-c", "alembic -c /app/alembic.ini upgrade head && hcwave-knowledge"]
+    restart: "no"
+
+  api:
+    <<: *backend
+    command: ["hcwave-api"]
+    ports: ["8000:8000", "8001:8001"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    <<: *backend
+    command: ["hcwave-worker"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  staff-ui:
+    build: { context: services/staff-ui }
+    image: hcwave/staff-ui:local
+    environment:
+      AUTH_MODE: none
+      API_BASE_URL: http://localhost:8000
+      CSP_CONNECT_SRC: http://localhost:8000
+    ports: ["5173:8080"]
+    depends_on: [api]
+
+volumes:
+  pgdata: {}
+  blobs: {}

@@ -1,0 +1,14 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "DURABLE_TASK_HUB": "hcwavelocal",
+    "HCWAVE_INTERNAL_URL": "http://localhost:8001",
+    "HCWAVE_INTERNAL_AUDIENCE": "api://hcwave-internal-api",
+    "AZURE_CLIENT_ID": "",
+    "FEEDBACK_OPD_DELAY_HOURS": "3",
+    "FEEDBACK_DISCHARGE_DELAY_HOURS": "24",
+    "FEEDBACK_REPLY_TIMEOUT_HOURS": "24"
+  }
+}

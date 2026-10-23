@@ -1,0 +1,373 @@
+# =============================================================================
+# hcwave – base application configuration (shared by every environment).
+#
+# Layering (later wins):
+#   config/app.yaml  ->  config/environments/${APP_ENV}.yaml  ->  overlay dir
+#                                                  ($HCWAVE_CONFIG_OVERLAY_DIR,
+#                                                   mounted from Helm values)
+#
+# Secrets NEVER live here. Use ${ENV_VAR} / ${ENV_VAR:-default}; values come
+# from .env locally and from Azure Key Vault (CSI driver) in AKS.
+#
+# Every pluggable component follows the same shape:
+#   <component>:
+#     provider: <name>            # which implementation to use
+#     providers:
+#       <name>: {...}             # settings for that implementation
+# Switching cloud/vendor = changing `provider`. Custom plugins can be given as
+# "python.module:ClassName".
+# =============================================================================
+
+app:
+  name: hcwave
+  environment: ${APP_ENV:-dev}
+  public_base_url: ${PUBLIC_BASE_URL:-http://localhost:8000}
+  log_level: ${LOG_LEVEL:-INFO}
+  log_format: json
+  timezone: Asia/Kolkata
+  secret_key: ${APP_SECRET_KEY}
+
+server:
+  host: 0.0.0.0
+  public_port: 8000     # webhooks, report portal, staff API (behind WAF)
+  internal_port: 8001   # job triggers for Logic Apps / Functions (private only)
+  cors_origins:
+    - ${STAFF_UI_ORIGIN:-http://localhost:5173}
+  docs_enabled: false
+  dev_routes_enabled: false
+
+database:
+  url: ${DATABASE_URL}
+  # password: credentials in DATABASE_URL | azure_ad: workload identity token
+  auth_mode: ${DATABASE_AUTH_MODE:-password}
+  pool_size: 10
+  max_overflow: 5
+  ssl_mode: ${DATABASE_SSL_MODE:-require}
+  row_level_security: true
+
+identity:
+  # default = DefaultAzureCredential (AKS workload identity, MI or az login).
+  mode: ${AZURE_IDENTITY_MODE:-default}
+  client_id: ${AZURE_CLIENT_ID:-}
+  tenant_id: ${AZURE_TENANT_ID:-}
+
+# ---------------------------------------------------------------------------
+# Patient messaging channel. acs_whatsapp | meta_cloud | console | module:Class
+# ---------------------------------------------------------------------------
+messaging:
+  provider: ${MESSAGING_PROVIDER:-acs_whatsapp}
+  interactive_fallback: text_menu
+  max_buttons: 3
+  max_list_rows: 10
+  session_window_hours: 24
+  providers:
+    acs_whatsapp:
+      endpoint: ${ACS_ENDPOINT:-}
+      access_key: ${ACS_ACCESS_KEY:-}          # empty = Entra ID (recommended)
+      api_version: "2025-01-15-preview"        # interactive buttons/lists
+      supports_interactive: true
+    meta_cloud:
+      graph_url: https://graph.facebook.com/v21.0
+      access_token: ${META_ACCESS_TOKEN:-}
+      app_secret: ${META_APP_SECRET:-}
+      verify_token: ${META_VERIFY_TOKEN:-}
+    console:
+      supports_interactive: true
+
+# ---------------------------------------------------------------------------
+# Queue between Event Grid / webhooks and the worker.
+# azure_service_bus | redis | in_memory
+# ---------------------------------------------------------------------------
+queue:
+  provider: ${QUEUE_PROVIDER:-azure_service_bus}
+  queues:
+    inbound: inbound-messages
+    delivery: delivery-status
+    reports: report-events
+  providers:
+    azure_service_bus:
+      fully_qualified_namespace: ${SERVICEBUS_NAMESPACE:-}
+      connection_string: ${SERVICEBUS_CONNECTION_STRING:-}
+      max_batch: 16
+      max_wait_seconds: 5
+      max_concurrency: 8
+    redis:
+      url: ${REDIS_URL:-redis://localhost:6379/0}
+    in_memory: {}
+
+# ---------------------------------------------------------------------------
+# Language models. Business code uses *profiles*; each profile picks a
+# provider + model (Azure OpenAI deployment name).
+# Check which models are deployed in South/Central India for data residency.
+# ---------------------------------------------------------------------------
+llm:
+  profiles:
+    intent:     # small, fast model for language/intent classification
+      provider: ${LLM_INTENT_PROVIDER:-azure_openai}
+      model: ${LLM_INTENT_MODEL:-gpt-5-mini}
+      max_tokens: 400
+      timeout_seconds: 20
+    reply:      # larger model for FAQ answers from hospital content
+      provider: ${LLM_REPLY_PROVIDER:-azure_openai}
+      model: ${LLM_REPLY_MODEL:-gpt-5}
+      max_tokens: 900
+      timeout_seconds: 40
+    tagger:     # feedback sentiment/category tagging
+      provider: ${LLM_TAGGER_PROVIDER:-azure_openai}
+      model: ${LLM_TAGGER_MODEL:-gpt-5-mini}
+      max_tokens: 300
+    embedding:
+      provider: ${LLM_EMBEDDING_PROVIDER:-azure_openai}
+      model: ${LLM_EMBEDDING_MODEL:-text-embedding-3-large}
+      dimensions: 1536
+  providers:
+    azure_openai:
+      # Foundry endpoint, or the APIM AI-gateway URL when APIM is enabled.
+      endpoint: ${AZURE_OPENAI_ENDPOINT:-}
+      api_version: "2025-04-01-preview"
+      api_key: ${AZURE_OPENAI_API_KEY:-}       # empty = Entra ID
+    anthropic_foundry:                         # Claude in Microsoft Foundry
+      base_url: ${ANTHROPIC_FOUNDRY_BASE_URL:-}
+      api_key: ${ANTHROPIC_FOUNDRY_API_KEY:-}
+    openai_compatible:                         # any other cloud / self-hosted
+      base_url: ${OPENAI_COMPAT_BASE_URL:-}
+      api_key: ${OPENAI_COMPAT_API_KEY:-not-needed}
+    fake: {}
+
+# ---------------------------------------------------------------------------
+# Knowledge search (RAG). azure_ai_search | pgvector | keyword
+# ---------------------------------------------------------------------------
+knowledge:
+  provider: ${KNOWLEDGE_PROVIDER:-azure_ai_search}
+  top_k: 4
+  min_score: 0.35
+  embedding_profile: embedding
+  providers:
+    azure_ai_search:
+      endpoint: ${AZURE_SEARCH_ENDPOINT:-}
+      index_name: hcwave-knowledge
+      api_key: ${AZURE_SEARCH_API_KEY:-}
+      semantic_configuration: default
+      use_semantic_ranker: true
+      vector_dimensions: 1536
+    pgvector: {}
+    keyword: {}
+
+# ---------------------------------------------------------------------------
+# Language detection. azure_translator | heuristic
+# ---------------------------------------------------------------------------
+language:
+  provider: ${LANGUAGE_PROVIDER:-azure_translator}
+  supported: [en, ml, hi]
+  default: en
+  providers:
+    azure_translator:
+      endpoint: ${AZURE_TRANSLATOR_ENDPOINT:-}
+      api_key: ${AZURE_TRANSLATOR_KEY:-}
+      region: ${AZURE_TRANSLATOR_REGION:-}
+    heuristic:
+      latin_default: en
+
+# ---------------------------------------------------------------------------
+# AI guardrails. azure_content_safety | none
+# ---------------------------------------------------------------------------
+safety:
+  provider: ${SAFETY_PROVIDER:-azure_content_safety}
+  block_severity: 4
+  prompt_shields_enabled: true
+  fail_open: false       # if the safety service is down, hand over to staff
+  providers:
+    azure_content_safety:
+      endpoint: ${AZURE_CONTENT_SAFETY_ENDPOINT:-}
+      api_key: ${AZURE_CONTENT_SAFETY_KEY:-}
+      api_version: "2024-09-01"
+    none: {}
+
+# ---------------------------------------------------------------------------
+# Object storage. azure_blob | s3 | local
+# ---------------------------------------------------------------------------
+storage:
+  provider: ${STORAGE_PROVIDER:-azure_blob}
+  containers:
+    reports: reports
+    imports: his-imports
+  providers:
+    azure_blob:
+      account_url: ${AZURE_STORAGE_ACCOUNT_URL:-}
+      connection_string: ${AZURE_STORAGE_CONNECTION_STRING:-}
+    s3:
+      region: ap-south-1
+      bucket_prefix: ${S3_BUCKET_PREFIX:-}
+    local:
+      root: ${LOCAL_STORAGE_ROOT:-.data/blobs}
+
+email:
+  provider: ${EMAIL_PROVIDER:-acs_email}
+  sender: ${EMAIL_SENDER:-DoNotReply@example.com}
+  providers:
+    acs_email:
+      endpoint: ${ACS_ENDPOINT:-}
+      access_key: ${ACS_ACCESS_KEY:-}
+    smtp:
+      host: ${SMTP_HOST:-localhost}
+      port: 587
+      username: ${SMTP_USERNAME:-}
+      password: ${SMTP_PASSWORD:-}
+    console: {}
+
+sms:
+  provider: ${SMS_PROVIDER:-acs_sms}
+  providers:
+    acs_sms:
+      endpoint: ${ACS_ENDPOINT:-}
+      from_number: ${ACS_SMS_FROM:-}
+      access_key: ${ACS_ACCESS_KEY:-}
+    msg91:
+      auth_key: ${MSG91_AUTH_KEY:-}
+      templates:
+        otp: ${MSG91_OTP_TEMPLATE_ID:-}
+    console: {}
+
+# ---------------------------------------------------------------------------
+# Dashboard. power_bi | grafana | builtin
+# ---------------------------------------------------------------------------
+dashboard:
+  provider: ${DASHBOARD_PROVIDER:-builtin}
+  providers:
+    power_bi:
+      workspace_id: ${POWERBI_WORKSPACE_ID:-}
+      report_id: ${POWERBI_REPORT_ID:-}
+      rls_role: Hospital
+    grafana:
+      base_url: ${GRAFANA_URL:-}
+      dashboard_uid: hcwave-overview
+    builtin: {}
+
+# ---------------------------------------------------------------------------
+# HIS integration (platform default; hospitals may override). csv | rest_api | fhir | none
+# ---------------------------------------------------------------------------
+his:
+  provider: ${HIS_PROVIDER:-csv}
+  providers:
+    csv:
+      container_key: imports
+      date_format: "%Y-%m-%d"
+      datetime_format: "%Y-%m-%d %H:%M"
+    rest_api:
+      base_url: ${HIS_API_BASE_URL:-}
+      auth: bearer
+      token: ${HIS_API_TOKEN:-}
+    fhir:
+      base_url: ${FHIR_URL:-}
+      auth: entra_id
+    none: {}
+
+# ---------------------------------------------------------------------------
+# Staff sign-in (Microsoft Entra ID). entra_id | oidc | disabled
+# ---------------------------------------------------------------------------
+auth:
+  provider: ${AUTH_PROVIDER:-entra_id}
+  tenant_id: ${AZURE_TENANT_ID:-}
+  audience: ${STAFF_API_AUDIENCE:-}
+  role_claim: roles
+  hospital_claim: hospital_ids
+  role_map:
+    front_office: FrontOffice
+    patient_relations: PatientRelations
+    unit_head: UnitHead
+    admin: Admin
+
+# Internal job API (Logic Apps / Functions / CronJobs). entra_id | shared_secret
+internal_auth:
+  mode: ${INTERNAL_AUTH_MODE:-entra_id}
+  tenant_id: ${AZURE_TENANT_ID:-}
+  audience: ${INTERNAL_API_AUDIENCE:-}
+  allowed_client_ids: ${INTERNAL_ALLOWED_CLIENT_IDS:-}
+  shared_secret: ${INTERNAL_API_TOKEN:-}
+
+guardrails:
+  intent_confidence_threshold: 0.6
+  max_input_chars: 1000
+
+conversation:
+  stop_keywords: [stop, unsubscribe, "നിർത്തുക", "बंद करो"]
+  start_keywords: [start, subscribe]
+  menu_keywords: [menu, hi, hello, hey, start over, "മെനു", "मेनू", "നമസ്കാരം", "नमस्ते"]
+  human_keywords: [agent, human, staff, "talk to someone"]
+  handover_auto_release_minutes: 240
+  first_message_is_opt_in: true
+  max_invalid_flow_inputs: 2
+  default_country_code: "91"
+
+booking:
+  days_ahead: 7
+  max_slots_shown: 10
+  collect_date_of_birth: true
+  min_lead_minutes: 60
+
+reports:
+  link_base_url: ${REPORTS_BASE_URL:-}   # empty = app.public_base_url
+  link_ttl_hours: 48            # 24–72 h per policy
+  download_url_ttl_minutes: 5
+  portal_session_minutes: 10
+  verification_methods: [otp, dob]
+  max_verification_attempts: 5
+  lockout_minutes: 30
+  otp:
+    length: 6
+    ttl_minutes: 10
+    max_attempts: 5
+    channels: [whatsapp, sms]
+
+reminders:
+  rules:
+    - id: day_before
+      kind: before_appointment
+      offset_minutes: -1440       # 24 h before; Confirm / Reschedule / Cancel
+      window_minutes: 120
+      template: appointment_reminder_24h
+    - id: prep
+      kind: before_appointment
+      offset_minutes: -180        # 3 h before; what to bring, fasting, token
+      window_minutes: 60
+      template: appointment_prep
+    - id: missed
+      kind: missed_appointment
+      offset_minutes: 120         # same day, 2 h after the missed slot
+      window_minutes: 480
+      template: missed_appointment
+    - id: follow_up
+      kind: follow_up_due
+      offset_minutes: -1440       # day before the doctor's follow-up date
+      window_minutes: 720
+      template: follow_up_due
+
+feedback:
+  opd_delay_hours: 3
+  discharge_delay_hours: 24
+  request_window_hours: 12
+  reply_timeout_hours: 24
+  detractor_threshold: 6
+  categories: [waiting_time, billing, staff_behaviour, cleanliness, doctor_communication, other]
+  ticket_sla_hours: 4
+  escalate_after_hours: 8
+  send_review_invite: true      # every patient (no review gating – Google policy)
+
+briefing:
+  enabled: true
+  send_whatsapp: true
+  send_email: true
+
+scheduler:
+  engine: ${SCHEDULER_ENGINE:-logic_apps}            # logic_apps | k8s_cronjob | none
+  feedback_engine: ${FEEDBACK_ENGINE:-jobs}           # durable_functions | jobs
+  durable_start_url: ${DURABLE_FEEDBACK_START_URL:-}
+  durable_audience: ${DURABLE_FUNCTIONS_AUDIENCE:-}
+
+telemetry:
+  enabled: true
+  exporter: ${TELEMETRY_EXPORTER:-azure_monitor}      # azure_monitor | otlp | console | none
+  connection_string: ${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+  otlp_endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  service_name: ${OTEL_SERVICE_NAME:-hcwave}
+  capture_llm_content: false

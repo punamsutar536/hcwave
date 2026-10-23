@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Your report – {{ hospital }}</title>
+  <link rel="stylesheet" href="/static/portal.css">
+</head>
+<body>
+<main class="card">
+  <p class="brand">{{ hospital }}</p>
+
+  {% if state == "invalid" %}
+    <h1>Link not available</h1>
+    <p>This link is invalid or has expired. Please ask the hospital to resend your report, or collect a printed copy at the report counter.</p>
+
+  {% elif state == "locked" %}
+    <h1>Temporarily locked</h1>
+    <p>Too many unsuccessful attempts. Please try again in 30 minutes or contact the hospital.</p>
+
+  {% elif state == "verified" %}
+    <h1>{{ title }}</h1>
+    <p>Verified. The report opens in a secure viewer and the link expires in a few minutes.</p>
+    <a class="button" href="{{ action_base }}/view">View report</a>
+    <p class="note">For any questions about your results, please consult your doctor.</p>
+
+  {% else %}
+    <h1>{{ title }}</h1>
+    <p>To protect your privacy, please verify it's you.</p>
+    {% if error == "verify_failed" %}<p class="error">The details didn't match. Please try again.</p>{% endif %}
+    {% if error == "otp_unavailable" %}<p class="error">We couldn't send a code right now. Please use your date of birth or try again later.</p>{% endif %}
+
+    {% if "otp" in methods %}
+      <section>
+        <h2>One-time code</h2>
+        {% if otp_sent %}
+          <p class="ok">A code was sent to your registered number by {{ "WhatsApp" if otp_sent == "whatsapp" else "SMS" }}.</p>
+          <form method="post" action="{{ action_base }}/verify">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="method" value="otp">
+            <label for="code">Enter the code</label>
+            <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" required>
+            <button type="submit">Verify</button>
+          </form>
+        {% else %}
+          <form method="post" action="{{ action_base }}/otp">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit">Send me a code</button>
+          </form>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    {% if "dob" in methods %}
+      <section>
+        <h2>Or use date of birth</h2>
+        <form method="post" action="{{ action_base }}/verify">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="method" value="dob">
+          <label for="dob">Patient's date of birth</label>
+          <input id="dob" name="dob" type="date" required>
+          <button type="submit">Verify</button>
+        </form>
+      </section>
+    {% endif %}
+  {% endif %}
+</main>
+</body>
+</html>

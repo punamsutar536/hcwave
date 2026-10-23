@@ -1,0 +1,9 @@
+apiVersion: v2
+name: hcwave
+description: Hospital AI Wave 1 platform – API, queue worker, staff UI, jobs (portable; Azure-ready).
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords: [healthcare, whatsapp, fastapi, langgraph, azure, aks]
+maintainers:
+  - name: hcwave platform team

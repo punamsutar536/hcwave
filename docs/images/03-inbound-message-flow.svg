@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="814" viewBox="0 0 1640 814" font-family="Inter, 'DejaVu Sans', Arial, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f2933"/></marker></defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="24" y="34" font-size="20" font-weight="700" fill="#1f2933">Inbound WhatsApp message – end-to-end processing</text>
+<text x="24" y="56" font-size="13" fill="#52606d">No public webhook: ACS publishes to Event Grid, which delivers to Service Bus with its managed identity. Nothing is lost during spikes or restarts.</text>
+<rect x="47.85714285714286" y="72" width="190" height="46" rx="9" fill="#f2f4f7" stroke="#7b8794" stroke-width="1.5"/>
+<text x="142.85714285714286" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Patient</text>
+<text x="142.85714285714286" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">(WhatsApp)</text>
+<line x1="142.85714285714286" y1="118" x2="142.85714285714286" y2="794" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="273.57142857142856" y="72" width="190" height="46" rx="9" fill="#e6f1fb" stroke="#0b6bcb" stroke-width="1.5"/>
+<text x="368.57142857142856" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">ACS Advanced</text>
+<text x="368.57142857142856" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Messaging</text>
+<line x1="368.57142857142856" y1="118" x2="368.57142857142856" y2="794" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="499.28571428571433" y="72" width="190" height="46" rx="9" fill="#e6f1fb" stroke="#0b6bcb" stroke-width="1.5"/>
+<text x="594.2857142857143" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Event Grid →</text>
+<text x="594.2857142857143" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Service Bus</text>
+<line x1="594.2857142857143" y1="118" x2="594.2857142857143" y2="794" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="725" y="72" width="190" height="46" rx="9" fill="#e9f7f8" stroke="#0f7c86" stroke-width="1.5"/>
+<text x="820" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Worker</text>
+<text x="820" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">(LangGraph)</text>
+<line x1="820" y1="118" x2="820" y2="794" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="950.7142857142858" y="72" width="190" height="46" rx="9" fill="#f1ebfb" stroke="#6b3fb8" stroke-width="1.5"/>
+<text x="1045.7142857142858" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Content Safety /</text>
+<text x="1045.7142857142858" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Translator</text>
+<line x1="1045.7142857142858" y1="118" x2="1045.7142857142858" y2="794" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="1176.4285714285716" y="72" width="190" height="46" rx="9" fill="#f1ebfb" stroke="#6b3fb8" stroke-width="1.5"/>
+<text x="1271.4285714285716" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">Azure OpenAI /</text>
+<text x="1271.4285714285716" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">AI Search</text>
+<line x1="1271.4285714285716" y1="118" x2="1271.4285714285716" y2="794" stroke="#7b8794" stroke-dasharray="4 4"/>
+<rect x="1402.142857142857" y="72" width="190" height="46" rx="9" fill="#e7f6ec" stroke="#1f8a4c" stroke-width="1.5"/>
+<text x="1497.142857142857" y="86" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">PostgreSQL</text>
+<text x="1497.142857142857" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1f2933">(RLS)</text>
+<line x1="1497.142857142857" y1="118" x2="1497.142857142857" y2="794" stroke="#7b8794" stroke-dasharray="4 4"/>
+<line x1="142.85714285714286" y1="150" x2="368.57142857142856" y2="150" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="148.31428571428572" y="130" width="214.8" height="16" fill="#ffffff"/>
+<text x="255.71428571428572" y="143" text-anchor="middle" font-size="12" fill="#1f2933">1. message / button / list reply</text>
+<line x1="368.57142857142856" y1="196" x2="594.2857142857143" y2="196" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="374.02857142857147" y="176" width="214.8" height="16" fill="#ffffff"/>
+<text x="481.42857142857144" y="189" text-anchor="middle" font-size="12" fill="#1f2933">2. AdvancedMessageReceived event</text>
+<line x1="594.2857142857143" y1="242" x2="820" y2="242" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="602.9428571428571" y="222" width="208.4" height="16" fill="#ffffff"/>
+<text x="707.1428571428571" y="235" text-anchor="middle" font-size="12" fill="#1f2933">3. queued event (at-least-once)</text>
+<line x1="820" y1="288" x2="1497.142857142857" y2="288" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="932.7714285714285" y="268" width="451.6" height="16" fill="#ffffff"/>
+<text x="1158.5714285714284" y="281" text-anchor="middle" font-size="12" fill="#1f2933">4. route by channel ID → tenant; lock conversation; de-duplicate; log</text>
+<path d="M820,326 h36 v16 h-34" fill="none" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="860" y="325" width="340.8" height="17" fill="#ffffff"/>
+<text x="864" y="338" font-size="12" fill="#1f2933">5. STOP / START keywords → consent (instant opt-out)</text>
+<path d="M820,372 h36 v16 h-34" fill="none" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="860" y="371" width="398.40000000000003" height="17" fill="#ffffff"/>
+<text x="864" y="384" font-size="12" fill="#1f2933">6. emergency keywords (ml/en/hi) → emergency reply + handover</text>
+<line x1="820" y1="426" x2="1045.7142857142858" y2="426" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="771.0571428571429" y="406" width="323.6" height="16" fill="#ffffff"/>
+<text x="932.8571428571429" y="419" text-anchor="middle" font-size="12" fill="#1f2933">7. harm filters + Prompt Shields; detect language</text>
+<path d="M820,464 h36 v16 h-34" fill="none" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="860" y="463" width="411.20000000000005" height="17" fill="#ffffff"/>
+<text x="864" y="476" font-size="12" fill="#1f2933">8. button/list payload or active flow → deterministic flow step</text>
+<line x1="820" y1="518" x2="1271.4285714285716" y2="518" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="871.1142857142858" y="498" width="349.20000000000005" height="16" fill="#ffffff"/>
+<text x="1045.7142857142858" y="511" text-anchor="middle" font-size="12" fill="#1f2933">9. free text → intent (gpt-5-mini, structured output)</text>
+<line x1="820" y1="564" x2="1271.4285714285716" y2="564" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="813.5142857142857" y="544" width="464.40000000000003" height="16" fill="#ffffff"/>
+<text x="1045.7142857142858" y="557" text-anchor="middle" font-size="12" fill="#1f2933">10. FAQ → hybrid search over hospital content → grounded answer (gpt-5)</text>
+<line x1="820" y1="610" x2="1497.142857142857" y2="610" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="974.3714285714284" y="590" width="368.40000000000003" height="16" fill="#ffffff"/>
+<text x="1158.5714285714284" y="603" text-anchor="middle" font-size="12" fill="#1f2933">11. low confidence / no answer → status handover_pending</text>
+<line x1="820" y1="656" x2="368.57142857142856" y2="656" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="413.2857142857142" y="636" width="362" height="16" fill="#ffffff"/>
+<text x="594.2857142857142" y="649" text-anchor="middle" font-size="12" fill="#1f2933">12. reply (session message) via SDK, logged with status</text>
+<line x1="368.57142857142856" y1="702" x2="142.85714285714286" y2="702" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="183.51428571428573" y="682" width="144.4" height="16" fill="#ffffff"/>
+<text x="255.71428571428572" y="695" text-anchor="middle" font-size="12" fill="#1f2933">13. message delivered</text>
+<line x1="368.57142857142856" y1="748" x2="594.2857142857143" y2="748" stroke="#1f2933" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="287.62857142857143" y="728" width="387.6" height="16" fill="#ffffff"/>
+<text x="481.42857142857144" y="741" text-anchor="middle" font-size="12" fill="#1f2933">14. DeliveryStatusUpdated → delivery queue → message status</text>
+</svg>

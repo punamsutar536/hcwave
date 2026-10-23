@@ -1,0 +1,67 @@
+{{- if .Values.staffUi.enabled }}
+# Staff screens (static React app on unprivileged nginx).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hcwave.fullname" . }}-staff-ui
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+    app.kubernetes.io/component: staff-ui
+spec:
+  replicas: {{ .Values.staffUi.replicas }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "hcwave.selectorLabels" (dict "root" . "component" "staff-ui") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hcwave.selectorLabels" (dict "root" . "component" "staff-ui") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      {{- include "hcwave.topologySpread" (dict "root" . "component" "staff-ui") | nindent 6 }}
+      {{- include "hcwave.scheduling" . | nindent 6 }}
+      containers:
+        - name: staff-ui
+          image: {{ include "hcwave.image" (dict "root" . "image" .Values.image.staffUi) }}
+          imagePullPolicy: {{ .Values.image.staffUi.pullPolicy }}
+          ports:
+            - { name: http, containerPort: 8080 }
+          env:
+            {{- range $name, $value := .Values.staffUi.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+          resources:
+            {{- toYaml .Values.staffUi.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: nginx-conf, mountPath: /etc/nginx/conf.d }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+        - { name: nginx-conf, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hcwave.fullname" . }}-staff-ui
+  labels:
+    {{- include "hcwave.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "hcwave.selectorLabels" (dict "root" . "component" "staff-ui") | nindent 4 }}
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+{{- end }}

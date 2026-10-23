@@ -1,0 +1,60 @@
+# =============================================================================
+# Local Kubernetes (kind / minikube / k3d): offline providers, plain Secret,
+# NGINX ingress, CronJobs instead of Logic Apps. Pair with
+# deploy/local/postgres.yaml (in-cluster PostgreSQL with pgvector).
+# =============================================================================
+global:
+  imageRegistry: ""
+
+image:
+  backend: { repository: hcwave/backend, tag: local, pullPolicy: Never }
+  staffUi: { repository: hcwave/staff-ui, tag: local, pullPolicy: Never }
+
+env:
+  APP_ENV: dev
+  DATABASE_URL: postgresql+asyncpg://hcwave:hcwave@postgres.hcwave.svc.cluster.local:5432/hcwave
+  QUEUE_PROVIDER: redis
+  REDIS_URL: redis://redis.hcwave.svc.cluster.local:6379/0
+  STORAGE_PROVIDER: s3            # MinIO: S3-compatible, shared by all pods
+  SCHEDULER_ENGINE: k8s_cronjob
+  INTERNAL_AUTH_MODE: shared_secret
+
+# The portability path in practice: object storage via the S3 adapter.
+appConfig:
+  storage:
+    providers:
+      s3:
+        region: us-east-1
+        endpoint_url: http://minio.hcwave.svc.cluster.local:9000
+        presign_urls: false
+
+secrets:
+  provider: kubernetes
+  kubernetes:
+    values:
+      APP_SECRET_KEY: local-dev-only-change-me
+      INTERNAL_API_TOKEN: local-internal-token
+      AWS_ACCESS_KEY_ID: hcwave
+      AWS_SECRET_ACCESS_KEY: hcwave-local-minio
+
+api:
+  replicas: 1
+  autoscaling: { enabled: false }
+worker:
+  replicas: 1
+staffUi:
+  replicas: 1
+  env:
+    AUTH_MODE: none
+
+cronJobs:
+  enabled: true
+
+ingress:
+  mode: ingress
+  hosts:
+    api: api.hcwave.localtest.me
+    reports: reports.hcwave.localtest.me
+    staff: staff.hcwave.localtest.me
+  ingress:
+    className: nginx

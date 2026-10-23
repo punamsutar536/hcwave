@@ -1,0 +1,17 @@
+hcwave {{ .Chart.AppVersion }} deployed to namespace {{ .Release.Namespace }}.
+
+  Staff app:   https://{{ .Values.ingress.hosts.staff }}
+  Public API:  https://{{ .Values.ingress.hosts.api }}  (webhooks, staff API)
+  Reports:     https://{{ .Values.ingress.hosts.reports }}/r/...
+  Job API:     {{ include "hcwave.fullname" . }}-api-internal:8001 (private)
+
+Check rollout:
+  kubectl -n {{ .Release.Namespace }} get pods,svc
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "hcwave.fullname" . }}-worker -f
+{{- if .Values.cronJobs.enabled }}
+
+Scheduled jobs run as CronJobs (kubectl get cronjobs).
+{{- else }}
+
+Scheduled jobs are expected from Logic Apps (scheduler.engine=logic_apps).
+{{- end }}

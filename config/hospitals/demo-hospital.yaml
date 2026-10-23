@@ -1,0 +1,59 @@
+# =============================================================================
+# Tenant configuration – one file per hospital. Copy this file to onboard a
+# new hospital; no code changes are needed.
+# =============================================================================
+id: demo-hospital
+name: Demo Multi-Speciality Hospital
+timezone: Asia/Kolkata
+active: true
+
+# Messaging channel IDs owned by this hospital. For ACS this is the WhatsApp
+# channel registration ID; for Meta Cloud API the phone number ID. Inbound
+# messages are routed to the hospital by this value. Comma-separated in env.
+channel_ids: ${DEMO_HOSPITAL_CHANNEL_IDS:-console}
+
+languages: [ml, en, hi]
+default_language: en
+
+address: "MG Road, Kochi, Kerala 682016"
+map_url: "https://maps.google.com/?q=Demo+Multi-Speciality+Hospital+Kochi"
+google_review_url: "https://g.page/r/demo-hospital/review"
+
+features:
+  assistant: true
+  booking: true
+  reminders: true
+  reports: true
+  feedback: true
+  dashboard: true
+  briefing: true
+
+contacts:
+  patient_relations_emails: ["${DEMO_PR_EMAIL:-patient.relations@example.com}"]
+  patient_relations_phones: ["${DEMO_PR_PHONE:-+919800000001}"]
+  unit_head_emails: ["${DEMO_UNIT_HEAD_EMAIL:-unit.head@example.com}"]
+  unit_head_phones: ["${DEMO_UNIT_HEAD_PHONE:-+919800000002}"]
+  front_office_phone: "+91 484 000 0000"
+
+# Emergency keywords trigger an immediate reply with the emergency number and
+# casualty directions – before any AI processing. Reviewed by native speakers.
+emergency:
+  phone: "108"
+  message:
+    en: "⚠️ This sounds like an emergency. Please call 108 or our casualty at +91 484 000 0911 immediately. Casualty entrance: Gate 2, MG Road (open 24×7). Our team has been alerted."
+    ml: "⚠️ ഇതൊരു അടിയന്തര സാഹചര്യമാണെന്ന് തോന്നുന്നു. ഉടൻ 108 അല്ലെങ്കിൽ ഞങ്ങളുടെ കാഷ്വാലിറ്റി +91 484 000 0911 വിളിക്കുക. കാഷ്വാലിറ്റി പ്രവേശനം: ഗേറ്റ് 2, എം.ജി. റോഡ് (24×7). ഞങ്ങളുടെ ടീമിനെ അറിയിച്ചിട്ടുണ്ട്."
+    hi: "⚠️ यह आपातकालीन स्थिति लगती है। कृपया तुरंत 108 या हमारी कैजुअल्टी +91 484 000 0911 पर कॉल करें। कैजुअल्टी प्रवेश: गेट 2, एम.जी. रोड (24×7)। हमारी टीम को सूचित कर दिया गया है।"
+  keywords:
+    en: [chest pain, breathless, breathlessness, can't breathe, cannot breathe, bleeding, unconscious, stroke, heart attack, seizure, fainted, accident, poison, suicide]
+    ml: ["നെഞ്ചുവേദന", "നെഞ്ച് വേദന", "ശ്വാസം മുട്ടൽ", "ശ്വാസതടസ്സം", "രക്തസ്രാവം", "ബോധമില്ല", "ബോധം പോയി", "അപകടം", "ഹൃദയാഘാതം", "nenju vedana", "swasam muttal"]
+    hi: ["सीने में दर्द", "छाती में दर्द", "सांस नहीं", "सांस लेने में तकलीफ", "खून बह", "बेहोश", "दिल का दौरा", "दुर्घटना", "seene me dard", "saans nahi"]
+
+# FAQ and policy content indexed for the assistant (relative to config/).
+knowledge_files:
+  - knowledge/demo-hospital/faq.yaml
+
+# Optional per-hospital HIS override, e.g.:
+# his:
+#   provider: rest_api
+#   providers:
+#     rest_api: {base_url: "https://his.example.in/api", auth: bearer, token: "${DEMO_HIS_TOKEN}"}

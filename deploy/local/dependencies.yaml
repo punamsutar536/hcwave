@@ -1,0 +1,108 @@
+# -----------------------------------------------------------------------------
+# Local-cluster dependencies for kind / minikube / k3d (NOT for production):
+# PostgreSQL 16 + pgvector, Redis (queue) and MinIO (S3-compatible storage).
+#   kubectl create namespace hcwave
+#   kubectl -n hcwave apply -f deploy/local/dependencies.yaml
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Secret
+metadata: { name: local-deps }
+type: Opaque
+stringData:
+  POSTGRES_USER: hcwave
+  POSTGRES_PASSWORD: hcwave
+  POSTGRES_DB: hcwave
+  MINIO_ROOT_USER: hcwave
+  MINIO_ROOT_PASSWORD: hcwave-local-minio
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: postgres }
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg16
+          envFrom: [ { secretRef: { name: local-deps } } ]
+          ports: [ { containerPort: 5432 } ]
+          readinessProbe: { exec: { command: ["pg_isready", "-U", "hcwave"] } }
+          volumeMounts: [ { name: data, mountPath: /var/lib/postgresql/data } ]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec: { accessModes: [ReadWriteOnce], resources: { requests: { storage: 2Gi } } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: postgres }
+spec:
+  selector: { app: postgres }
+  ports: [ { port: 5432 } ]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: redis }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: redis } }
+  template:
+    metadata: { labels: { app: redis } }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports: [ { containerPort: 6379 } ]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: redis }
+spec:
+  selector: { app: redis }
+  ports: [ { port: 6379 } ]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: minio }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: minio } }
+  template:
+    metadata: { labels: { app: minio } }
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+          args: ["server", "/data"]
+          envFrom: [ { secretRef: { name: local-deps } } ]
+          ports: [ { containerPort: 9000 } ]
+          volumeMounts: [ { name: data, mountPath: /data } ]
+      volumes: [ { name: data, emptyDir: {} } ]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: minio }
+spec:
+  selector: { app: minio }
+  ports: [ { port: 9000 } ]
+---
+# Creates the buckets the app expects (reports, his-imports).
+apiVersion: batch/v1
+kind: Job
+metadata: { name: minio-buckets }
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+          envFrom: [ { secretRef: { name: local-deps } } ]
+          command: ["/bin/sh", "-c"]
+          args:
+            - mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" &&
+              mc mb --ignore-existing local/reports local/his-imports
