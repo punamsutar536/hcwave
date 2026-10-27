@@ -1,5 +1,6 @@
 # Hospital AI – Wave 1 platform (hcwave)
 # =====================================================
+hcwave
 
 One platform for five hospital patient-engagement products that share the same
 WhatsApp number, database and patient records:
